@@ -348,6 +348,12 @@ bool load_config(const char *filename, Config *config) {
                     safe_strncpy(config->engine_type, value, sizeof(config->engine_type));
                     free(value);
                 }
+            } else if (strstr(trimmed, "replace_return_url:")) {
+                char *value = extract_yaml_value(trimmed);
+                if (value) {
+                    safe_strncpy(config->base_url, value, sizeof(config->base_url));
+                    free(value);
+                }
             } else if (strstr(trimmed, "url:")) {
                 char *value = extract_yaml_value(trimmed);
                 if (value) {
@@ -358,12 +364,6 @@ bool load_config(const char *filename, Config *config) {
                 char *value = extract_yaml_value(trimmed);
                 if (value) {
                     safe_strncpy(config->index_name, value, sizeof(config->index_name));
-                    free(value);
-                }
-            } else if (strstr(trimmed, "replace_return_url:")) {
-                char *value = extract_yaml_value(trimmed);
-                if (value) {
-                    safe_strncpy(config->base_url, value, sizeof(config->base_url));
                     free(value);
                 }
             } else if (strstr(trimmed, "search_count:")) {
