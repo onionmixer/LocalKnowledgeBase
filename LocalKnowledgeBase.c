@@ -106,6 +106,11 @@ void signal_handler(int signum) {
     if (signum == SIGINT || signum == SIGTERM) {
         g_running = 0;
         printf("\n[Server] Received signal %d, shutting down...\n", signum);
+
+        /* accept() 블로킹 해제를 위해 서버 소켓 종료 */
+        if (g_server_fd >= 0) {
+            shutdown(g_server_fd, SHUT_RDWR);
+        }
     }
 }
 
