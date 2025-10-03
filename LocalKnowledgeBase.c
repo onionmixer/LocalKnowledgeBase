@@ -1124,6 +1124,15 @@ void handle_search_request(int client_fd, const char *body) {
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
 
+    /* 빈 요청 체크 */
+    if (!body || strlen(body) == 0) {
+        printf("[Search] Warning: Empty request body, ignoring\n");
+        char *empty_response = create_json_response(NULL, 0, 0);
+        send_http_response(client_fd, 200, "OK", "application/json", empty_response);
+        free(empty_response);
+        return;
+    }
+
 #ifdef DEBUG
     /* Open WebUI로부터 받은 원본 요청 로그 기록 */
     write_request_log(body);
