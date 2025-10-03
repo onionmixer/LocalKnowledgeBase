@@ -1,0 +1,9 @@
+{
+  "index": "{INDEX_NAME}",
+  "query": {
+    "match": {
+      "*": "{SEARCH_QUERY}"
+    }
+  },
+  "limit": {RESULT_LIMIT}
+}

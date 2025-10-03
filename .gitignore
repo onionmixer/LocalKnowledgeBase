@@ -1,0 +1,39 @@
+# Compiled binaries
+LocalKnowledgeBase
+*.o
+*.out
+
+# Debug files
+*.log
+02_search.log
+
+# Build artifacts
+*.a
+*.so
+*.dylib
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+/tmp/
+*.tmp
+
+# Legacy/backup files
+*.bak
+*.old
+legacy/
+
+# Test outputs
+test_*.txt
+
+# Config overrides (keep example)
+config.local.yaml

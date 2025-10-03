@@ -1,0 +1,15 @@
+# LKB (Local Knowledge Base) Configuration
+
+# LKB Server Settings
+lkb:
+  listen: "0.0.0.0"  # 0.0.0.0 for all interfaces, or specific IP
+  port: 7777
+
+# Search Engine Settings
+engine:
+  type: "manticore"  # Options: manticore, elastic
+  url: "http://127.0.0.1:29308/search"
+  index_name: "wiki_main"
+  replace_return_url: "http://localhost/mediawiki/index.php/"  # MediaWiki base URL for search results
+  search_count: 5  # Default number of search results to return
+  snippet_length: 200  # Maximum snippet length in bytes
