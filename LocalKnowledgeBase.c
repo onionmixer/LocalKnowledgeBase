@@ -925,6 +925,8 @@ int search_manticore(const char *query, int count, SearchResult *results) {
     /* 템플릿 변수 치환 */
     char *request_body = replace_template_vars(template, g_config.index_name, query, count);
 
+    printf("[Manticore] Connecting to: %s:%d%s\n",
+           g_config.manticore_host, g_config.manticore_port, g_config.manticore_path);
     printf("[Manticore] Request: %s\n", request_body);
 
 #ifdef DEBUG
