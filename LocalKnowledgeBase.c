@@ -26,6 +26,7 @@
 
 #ifdef DEBUG
 #define LOG_FILE "02_search.log"
+#define REQUEST_LOG_FILE "01_fromrequest.log"
 #endif
 
 #define BUFFER_SIZE 2097152  /* 2MB buffer for large responses */
@@ -214,6 +215,23 @@ void write_debug_log(const char *section, const char *message) {
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", tm_info);
 
     fprintf(log_file, "[%s] [%s] %s\n", timestamp, section, message);
+    fclose(log_file);
+}
+
+/* 요청 로그 작성 함수 (Open WebUI로부터 받은 원본 요청) */
+void write_request_log(const char *raw_body) {
+    FILE *log_file = fopen(REQUEST_LOG_FILE, "a");
+    if (!log_file) {
+        fprintf(stderr, "[DEBUG] Failed to open request log file: %s\n", REQUEST_LOG_FILE);
+        return;
+    }
+
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+    char timestamp[64];
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", tm_info);
+
+    fprintf(log_file, "[%s] REQUEST_BODY: %s\n", timestamp, raw_body);
     fclose(log_file);
 }
 #endif
@@ -1105,6 +1123,11 @@ void send_http_response(int client_fd, int status_code, const char *status_text,
 void handle_search_request(int client_fd, const char *body) {
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
+
+#ifdef DEBUG
+    /* Open WebUI로부터 받은 원본 요청 로그 기록 */
+    write_request_log(body);
+#endif
 
     SearchRequest req;
     parse_search_request(body, &req);
