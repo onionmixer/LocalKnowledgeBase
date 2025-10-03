@@ -68,15 +68,8 @@ typedef struct {
     char *snippet;
 } SearchResult;
 
-/* 템플릿 캐시 */
-typedef struct {
-    char *content;
-    bool loaded;
-} TemplateCache;
-
 /* 전역 변수 */
 static Config g_config;
-static TemplateCache g_template_cache = {NULL, false};
 static volatile sig_atomic_t g_running = 1;
 static int g_server_fd = -1;
 
@@ -86,13 +79,6 @@ static int g_server_fd = -1;
 
 void cleanup_resources() {
     printf("\n[Server] Cleaning up resources...\n");
-
-    /* 템플릿 캐시 해제 */
-    if (g_template_cache.content) {
-        free(g_template_cache.content);
-        g_template_cache.content = NULL;
-        g_template_cache.loaded = false;
-    }
 
     /* 서버 소켓 닫기 */
     if (g_server_fd >= 0) {
@@ -714,19 +700,9 @@ char* load_file(const char *filename) {
     return content;
 }
 
-/* 템플릿 파일 로드 (캐싱 포함) */
+/* 템플릿 파일 로드 */
 char* load_template(const char *filename) {
-    if (g_template_cache.loaded && g_template_cache.content) {
-        return g_template_cache.content;
-    }
-
-    char *content = load_file(filename);
-    if (content) {
-        g_template_cache.content = content;
-        g_template_cache.loaded = true;
-    }
-
-    return content;
+    return load_file(filename);
 }
 
 char* replace_template_vars(const char *template, const char *index_name,
@@ -934,7 +910,7 @@ int parse_manticore_response(const char *response, int max_results, SearchResult
 }
 
 int search_manticore(const char *query, int count, SearchResult *results) {
-    /* 템플릿 로드 (캐시 사용) */
+    /* 템플릿 로드 */
     char *template = load_template("rule_manticore.txt");
     if (!template) {
         return 0;
@@ -942,6 +918,7 @@ int search_manticore(const char *query, int count, SearchResult *results) {
 
     /* 템플릿 변수 치환 */
     char *request_body = replace_template_vars(template, g_config.index_name, query, count);
+    free(template);  /* 템플릿 메모리 해제 */
 
     printf("[Manticore] Connecting to: %s:%d%s\n",
            g_config.manticore_host, g_config.manticore_port, g_config.manticore_path);
@@ -1188,6 +1165,20 @@ void handle_client(int client_fd) {
     }
 
     buffer[bytes_read] = '\0';
+
+#ifdef DEBUG
+    /* 전체 HTTP 요청 로그 (디버깅용) */
+    FILE *raw_log = fopen("00_raw_request.log", "a");
+    if (raw_log) {
+        time_t now = time(NULL);
+        struct tm *tm_info = localtime(&now);
+        char timestamp[64];
+        strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", tm_info);
+        fprintf(raw_log, "\n[%s] === RAW HTTP REQUEST (bytes: %zd) ===\n%s\n=== END ===\n",
+                timestamp, bytes_read, buffer);
+        fclose(raw_log);
+    }
+#endif
 
     char method[16], path[256];
     int parsed = sscanf(buffer, "%15s %255s", method, path);
