@@ -23,6 +23,8 @@
 #include <time.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #ifdef DEBUG
 #define LOG_FILE "02_search.log"
@@ -1206,10 +1208,90 @@ void handle_client(int client_fd) {
     free(buffer);
 }
 
-int main() {
+/* 데몬화 함수 */
+void daemonize(const char *working_dir) {
+    pid_t pid;
+
+    /* 첫 번째 fork */
+    pid = fork();
+    if (pid < 0) {
+        perror("fork failed");
+        exit(EXIT_FAILURE);
+    }
+    if (pid > 0) {
+        exit(EXIT_SUCCESS);  /* 부모 프로세스 종료 */
+    }
+
+    /* 새로운 세션 생성 */
+    if (setsid() < 0) {
+        perror("setsid failed");
+        exit(EXIT_FAILURE);
+    }
+
+    /* 시그널 무시 */
+    signal(SIGCHLD, SIG_IGN);
+    signal(SIGHUP, SIG_IGN);
+
+    /* 두 번째 fork */
+    pid = fork();
+    if (pid < 0) {
+        perror("fork failed");
+        exit(EXIT_FAILURE);
+    }
+    if (pid > 0) {
+        exit(EXIT_SUCCESS);  /* 부모 프로세스 종료 */
+    }
+
+    /* 작업 디렉토리 변경 (설정 파일 위치 유지) */
+    if (working_dir && chdir(working_dir) < 0) {
+        perror("chdir failed");
+        exit(EXIT_FAILURE);
+    }
+
+    /* 파일 모드 마스크 설정 */
+    umask(0);
+
+    /* 표준 입출력 닫기 */
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
+
+    /* /dev/null로 리다이렉트 */
+    open("/dev/null", O_RDONLY);  /* stdin */
+    open("/dev/null", O_WRONLY);  /* stdout */
+    open("/dev/null", O_WRONLY);  /* stderr */
+}
+
+int main(int argc, char *argv[]) {
     int client_fd;
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_len = sizeof(client_addr);
+    bool daemon_mode = false;
+    char cwd[1024];
+
+    /* 현재 작업 디렉토리 저장 */
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+        perror("getcwd failed");
+        return 1;
+    }
+
+    /* 커맨드 라인 인자 파싱 */
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--daemon") == 0) {
+            daemon_mode = true;
+        } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            printf("Usage: %s [OPTIONS]\n", argv[0]);
+            printf("Options:\n");
+            printf("  -d, --daemon    Run in daemon mode\n");
+            printf("  -h, --help      Show this help message\n");
+            return 0;
+        }
+    }
+
+    /* 데몬 모드 실행 */
+    if (daemon_mode) {
+        daemonize(cwd);
+    }
 
     /* 시그널 핸들러 설정 */
     signal(SIGINT, signal_handler);

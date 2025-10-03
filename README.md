@@ -5,6 +5,7 @@ A high-performance C-based middleware service that bridges Open WebUI with Manti
 ## Features
 
 - **Pure C Implementation**: Lightweight, fast, and minimal dependencies
+- **Daemon Mode**: Run as background service with `-d` flag
 - **Manticore Search Integration**: Full support for Manticore Search HTTP API
 - **Query Translation**: Automatic conversion between Open WebUI and Manticore formats
 - **Template-Based Queries**: Flexible query customization via templates
@@ -13,6 +14,7 @@ A high-performance C-based middleware service that bridges Open WebUI with Manti
 - **Graceful Shutdown**: Signal handling for clean resource cleanup
 - **Configurable**: YAML-based configuration with section hierarchy support
 - **URL Encoding**: RFC 3986 compliant URL encoding for special characters
+- **Debug Mode**: Detailed logging for troubleshooting (compile with `-DDEBUG`)
 
 ## Architecture
 
@@ -52,11 +54,23 @@ Open WebUI → LKB (C Server) → Manticore Search
 ### Building
 
 ```bash
-# Compile the server
-gcc -o LocalKnowledgeBase LocalKnowledgeBase.c -Wall -Wextra
+# Standard build
+make
 
-# Or use the provided compilation script
-chmod +x start.sh
+# Debug build (with logging)
+make debug
+
+# Clean build artifacts
+make clean
+```
+
+**Manual compilation:**
+```bash
+# Production build
+gcc -o LocalKnowledgeBase LocalKnowledgeBase.c -Wall -Wextra -O2
+
+# Debug build
+gcc -o LocalKnowledgeBase LocalKnowledgeBase.c -Wall -Wextra -g -DDEBUG -O0
 ```
 
 ## Configuration
@@ -104,15 +118,26 @@ Edit `rule_manticore.txt` to customize Manticore Search queries:
 
 ### Starting the Server
 
+**Foreground mode (interactive):**
 ```bash
-# Start the server
 ./LocalKnowledgeBase
-
-# Or run in background
-./LocalKnowledgeBase > /var/log/lkb.log 2>&1 &
 ```
 
-Expected output:
+**Daemon mode (background):**
+```bash
+# Run as daemon
+./LocalKnowledgeBase -d
+
+# Or with long option
+./LocalKnowledgeBase --daemon
+```
+
+**View available options:**
+```bash
+./LocalKnowledgeBase -h
+```
+
+Expected output (foreground mode):
 ```
 LocalKnowledgeBase C Server
 ✓ Server running on http://0.0.0.0:7777
@@ -126,13 +151,27 @@ LocalKnowledgeBase C Server
 Press Ctrl+C to stop
 ```
 
-### Stopping the Server
+### Managing the Server
 
+**Check if daemon is running:**
+```bash
+ps aux | grep LocalKnowledgeBase
+```
+
+**Stop the server:**
 ```bash
 # Graceful shutdown (recommended)
-kill -INT <pid>
+pkill LocalKnowledgeBase
+
+# Or with specific PID
+kill -TERM <pid>
 
 # Or press Ctrl+C if running in foreground
+```
+
+**Restart the server:**
+```bash
+pkill LocalKnowledgeBase && ./LocalKnowledgeBase -d
 ```
 
 ### Testing
@@ -245,10 +284,15 @@ Automatic RFC 3986 compliant URL encoding:
 Compile with debug flag to enable detailed logging:
 
 ```bash
-gcc -o LocalKnowledgeBase LocalKnowledgeBase.c -Wall -Wextra -DDEBUG
+make debug
 ```
 
-Debug logs will be written to `02_search.log`.
+Debug logs:
+- `00_raw_request.log` - Raw HTTP requests (all incoming traffic)
+- `01_fromrequest.log` - Parsed request bodies from Open WebUI
+- `02_search.log` - Search queries and Manticore responses
+
+**Note**: Debug mode writes all HTTP traffic including headers, useful for diagnosing connection issues with Open WebUI.
 
 ### Project Structure
 
